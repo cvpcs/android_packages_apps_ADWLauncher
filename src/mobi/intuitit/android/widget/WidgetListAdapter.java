@@ -458,22 +458,18 @@ public class WidgetListAdapter extends BaseAdapter {
         return 0;
     }
 
-    @Override
     public int getCount() {
         return rowsElementsList.size();
     }
 
-    @Override
     public Object getItem(int position) {
         return rowsElementsList.get(position);
     }
 
-    @Override
     public long getItemId(int position) {
         return position;
     }
 
-    @Override
     public View getView(int position, View convertView, ViewGroup parent) {
 
         ViewHolder holder;

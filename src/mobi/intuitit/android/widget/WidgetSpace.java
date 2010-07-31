@@ -484,7 +484,6 @@ public abstract class WidgetSpace extends ViewGroup {
 
                     // create listener for content Provider data modification
                     WidgetDataChangeListener widgetDataChangeListener = new WidgetDataChangeListener() {
-                        @Override
                         public void onChange() {
                             lvAdapter.notifyToRegenerate();
                         }
