@@ -1,21 +1,3 @@
-/*
-*    Copyright 2010 AnderWeb (Gustavo Claramunt) <anderweb@gmail.com>
-*
-*    This file is part of ADW.Launcher.
-*
-*    ADW.Launcher is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation, either version 3 of the License, or
-*    (at your option) any later version.
-*
-*    ADW.Launcher is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU General Public License for more details.
-*
-*    You should have received a copy of the GNU General Public License
-*    along with ADW.Launcher.  If not, see <http://www.gnu.org/licenses/>.
-*/
 package com.android.launcher;
 
 import com.android.launcher.DragController.DragListener;
@@ -30,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class ActionButton extends ImageView implements DropTarget, DragListener {
@@ -241,5 +224,27 @@ public class ActionButton extends ImageView implements DropTarget, DragListener 
 			if(bgResource!=null)bgResource.setCallback(null);
 			bgResource=d;
 		}
+	}
+	/**
+	 * ADW: Reload the proper icon
+	 * This is mainly used when the apps from SDcard are available in froyo
+	 */
+	public void reloadIcon(){
+		if(mCurrentInfo==null)return;
+		if(mCurrentInfo.itemType==LauncherSettings.Favorites.ITEM_TYPE_APPLICATION){
+	        ApplicationInfo info=(ApplicationInfo) mCurrentInfo;
+			final Drawable icon = Launcher.getModel().getApplicationInfoIcon(
+	                mLauncher.getPackageManager(), info);
+	        Drawable myIcon=null;
+			if (icon != null) {
+	            info.icon.setCallback(null);
+	            info.icon = Utilities.createIconThumbnail(icon, mLauncher);
+	            info.filtered = true;
+	            myIcon = mLauncher.createSmallActionButtonIcon(info);
+				setImageDrawable(myIcon);
+		        invalidate();			
+	        }
+		}
+		
 	}
 }

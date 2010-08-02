@@ -1,21 +1,18 @@
 /*
-*    Copyright 2010 AnderWeb (Gustavo Claramunt) <anderweb@gmail.com>
-*
-*    This file is part of ADW.Launcher.
-*
-*    ADW.Launcher is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation, either version 3 of the License, or
-*    (at your option) any later version.
-*
-*    ADW.Launcher is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU General Public License for more details.
-*
-*    You should have received a copy of the GNU General Public License
-*    along with ADW.Launcher.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2008 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.android.launcher;
 
@@ -32,7 +29,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.Scroller;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -445,6 +444,28 @@ public class MiniLauncher extends ViewGroup implements View.OnLongClickListener,
 		mBackground=(TransitionDrawable) d;
 		mBackground.setCrossFadeEnabled(true);
 		
+	}
+	/**
+	 * ADW: Reload the proper icons
+	 * This is mainly used when the apps from SDcard are available in froyo
+	 */
+	public void reloadIcons(){
+		final int count=getChildCount();
+		for(int i=0;i<count;i++){
+			final View cell=getChildAt(i);
+			final ItemInfo itemInfo = (ItemInfo) cell.getTag();
+			if (itemInfo.itemType==LauncherSettings.Favorites.ITEM_TYPE_APPLICATION){
+	            ApplicationInfo info=(ApplicationInfo) itemInfo;
+				final Drawable icon = Launcher.getModel().getApplicationInfoIcon(
+	                    mLauncher.getPackageManager(), info);
+	            if (icon != null && icon != info.icon) {
+	                info.icon.setCallback(null);
+	                info.icon = Utilities.createIconThumbnail(icon, mLauncher);
+	                info.filtered = true;
+	                ((ImageView)cell).setImageDrawable(Utilities.drawReflection(info.icon, mLauncher));
+	            }
+			}
+        }
 	}
 
 }
