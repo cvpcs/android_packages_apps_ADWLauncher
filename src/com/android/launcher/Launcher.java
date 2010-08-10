@@ -54,6 +54,7 @@ import android.database.ContentObserver;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LevelListDrawable;
@@ -301,12 +302,18 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 	public static final int THEME_ITEM_BACKGROUND=0;
 	public static final int THEME_ITEM_FOREGROUND=1;
 	public static final String THEME_DEFAULT="ADW.Default theme";
-
+	private Typeface themeFont=null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        int orientation = getResources().getConfiguration().orientation;
-		savedOrientation=orientation;
+    	d("LAUNCHER","ONCREATE");
 		mMessWithPersistence=AlmostNexusSettingsHelper.getSystemPersistent(this);
+		if(mMessWithPersistence){
+	        changeOrientation(AlmostNexusSettingsHelper.getDesktopOrientation(this),true);
+			setPersistent(true);
+		}else{
+			setPersistent(false);
+	        changeOrientation(AlmostNexusSettingsHelper.getDesktopOrientation(this),false);
+		}
     	super.onCreate(savedInstanceState);
         mInflater = getLayoutInflater();
 
@@ -319,11 +326,6 @@ public final class Launcher extends Activity implements View.OnClickListener, On
             android.os.Debug.startMethodTracing("/sdcard/launcher");
         }
         updateAlmostNexusVars();
-        //ADW: Check orientation settings and set it on boot
-        this.setRequestedOrientation(
-        		AlmostNexusSettingsHelper.getDesktopRotation(this)?
-        				ActivityInfo.SCREEN_ORIENTATION_USER:ActivityInfo.SCREEN_ORIENTATION_NOSENSOR
-        );
         checkForLocaleChange();
         setWallpaperDimension();
         //ADW: load the drawer type on boot so we can cast the proper Class later
@@ -569,6 +571,7 @@ public final class Launcher extends Activity implements View.OnClickListener, On
         //ADW: removed cause it was closing app-drawer every time Home button is triggered
         //ADW: it should be done only on certain circumstances
         //closeDrawer(false);
+        savedOrientation = getResources().getConfiguration().orientation;
     }
 
     @Override
@@ -577,7 +580,7 @@ public final class Launcher extends Activity implements View.OnClickListener, On
         if (mBinder != null) {
             mBinder.mTerminate = true;
         }
-        if(mMessWithPersistence)setPersistent(false);
+        //if(mMessWithPersistence)setPersistent(false);
         if (PROFILE_ROTATE) {
             android.os.Debug.startMethodTracing("/sdcard/launcher-rotate");
         }
@@ -809,6 +812,11 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 			loadThemeResource(themeResources,themePackage,"home_arrows_right",mNextView,THEME_ITEM_FOREGROUND);
 			//Dockbar
 			loadThemeResource(themeResources,themePackage,"dockbar_bg",mMiniLauncher,THEME_ITEM_BACKGROUND);
+			try{
+				themeFont=Typeface.createFromAsset(themeResources.getAssets(), "themefont.ttf");
+			}catch (RuntimeException e) {
+				// TODO: handle exception
+			}
 		}
         mHandleIcon = (TransitionDrawable) mHandleView.getDrawable();
         mHandleIcon.setCrossFadeEnabled(true);
@@ -852,6 +860,8 @@ public final class Launcher extends Activity implements View.OnClickListener, On
         if(!uiHideLabels)favorite.setText(info.title);
         favorite.setTag(info);
         favorite.setOnClickListener(this);
+		//ADW: Custom font
+		if(themeFont!=null) favorite.setTypeface(themeFont);
 
         return favorite;
     }
@@ -1535,6 +1545,7 @@ public final class Launcher extends Activity implements View.OnClickListener, On
         // Create the view
         FolderIcon newFolder = FolderIcon.fromXml(R.layout.folder_icon, this,
                 (ViewGroup) mWorkspace.getChildAt(mWorkspace.getCurrentScreen()), folderInfo);
+        if(themeFont!=null)((TextView)newFolder).setTypeface(themeFont);
         mWorkspace.addInCurrentScreen(newFolder,
                 cellInfo.cellX, cellInfo.cellY, 1, 1, insertAtFirst);
     }
@@ -1551,6 +1562,7 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 
             final View view = LiveFolderIcon.fromXml(R.layout.live_folder_icon, this,
                 (ViewGroup) mWorkspace.getChildAt(mWorkspace.getCurrentScreen()), info);
+            if(themeFont!=null)((TextView)view).setTypeface(themeFont);
             mWorkspace.addInCurrentScreen(view, cellInfo.cellX, cellInfo.cellY, 1, 1, insertAtFirst);
         } else if (sModel.isDesktopLoaded()) {
             sModel.addDesktopItem(info);
@@ -1869,6 +1881,7 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 		                    final FolderIcon newFolder = FolderIcon.fromXml(R.layout.folder_icon, this,
 		                            (ViewGroup) workspace.getChildAt(workspace.getCurrentScreen()),
 		                            (UserFolderInfo) item);
+		                    if(themeFont!=null)((TextView)newFolder).setTypeface(themeFont);
 		                    workspace.addInScreen(newFolder, item.screen, item.cellX, item.cellY, 1, 1,
 		                            !desktopLocked);
 		                    break;
@@ -1877,6 +1890,7 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 		                            R.layout.live_folder_icon, this,
 		                            (ViewGroup) workspace.getChildAt(workspace.getCurrentScreen()),
 		                            (LiveFolderInfo) item);
+		                    if(themeFont!=null)((TextView)newLiveFolder).setTypeface(themeFont);
 		                    workspace.addInScreen(newLiveFolder, item.screen, item.cellX, item.cellY, 1, 1,
 		                            !desktopLocked);
 		                    break;
@@ -2704,6 +2718,7 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 		if(mWorkspace!=null){
 			mWorkspace.setSpeed(AlmostNexusSettingsHelper.getDesktopSpeed(this));
 			mWorkspace.setBounceAmount(AlmostNexusSettingsHelper.getDesktopBounce(this));
+			mWorkspace.setDefaultScreen(AlmostNexusSettingsHelper.getDefaultScreen(this));
 		}
 		int animationSpeed=AlmostNexusSettingsHelper.getZoomSpeed(this);
         if(mAllAppsGrid!=null){
@@ -2737,8 +2752,10 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 		mHandleView.setSlidingEnabled(showDockBar);
     	fullScreen(hideStatusBar);
     	if(!mDockBar.isOpen() && !showingPreviews){
-	    	mNextView.setVisibility(showDots?View.VISIBLE:View.GONE);
-	    	mPreviousView.setVisibility(showDots?View.VISIBLE:View.GONE);
+	    	if(!isAllAppsVisible()){
+	    		mNextView.setVisibility(showDots?View.VISIBLE:View.GONE);
+		    	mPreviousView.setVisibility(showDots?View.VISIBLE:View.GONE);
+	    	}
 	    	mRAB.setVisibility(showRAB?View.VISIBLE:View.INVISIBLE);
 	    	mLAB.setVisibility(showLAB?View.VISIBLE:View.INVISIBLE);
 	    	mRAB2.setVisibility((showAB2 && !showDots)?View.VISIBLE:View.GONE);
@@ -2758,6 +2775,9 @@ public final class Launcher extends Activity implements View.OnClickListener, On
     		mDesktopIndicator.setAutoHide(AlmostNexusSettingsHelper.getDesktopIndicatorAutohide(this));
     		if(mWorkspace!=null){
     			mDesktopIndicator.setItems(mWorkspace.getChildCount());
+    		}
+    		if(isAllAppsVisible()){
+    			if(mDesktopIndicator!=null)mDesktopIndicator.hide();
     		}
     	}
 
@@ -3147,7 +3167,7 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 			allAppsOpen=true;
 			mWorkspace.enableChildrenCache();
 	        mWorkspace.lock();
-	        mDesktopLocked=true;
+	        //mDesktopLocked=true;
 	        mWorkspace.invalidate();			
             if(newDrawer){
     	        ((AllAppsSlidingView) mAllAppsGrid).open(animated && allowDrawerAnimations);
@@ -3165,7 +3185,7 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 		if(allAppsOpen){
 			allAppsOpen=false;
 	        mWorkspace.unlock();
-	        mDesktopLocked=false;
+	        //mDesktopLocked=false;
 	        mWorkspace.invalidate();			
 			mHandleIcon.resetTransition();
 			if(!isDockBarOpen() && showDots){
@@ -3240,14 +3260,14 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 				startActivity(getIntent());
 				return true;
             }else{
-            	if(mMessWithPersistence){
+            	/*if(mMessWithPersistence){
 	        		int currentOrientation=getResources().getConfiguration().orientation;
 	        		if(currentOrientation!=savedOrientation){
 	        			mShouldRestart=true;
 	        			finish();
 	        			startActivity(getIntent());
 	        		}
-            	}
+            	}*/
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -3256,16 +3276,35 @@ public final class Launcher extends Activity implements View.OnClickListener, On
     }
 	public void onSharedPreferenceChanged(SharedPreferences sp, String key) {
 		//ADW: Try to add the restart flag here instead on preferences activity
-		if(AlmostNexusSettingsHelper.needsRestart(key))
+		if(AlmostNexusSettingsHelper.needsRestart(key)){
+			setPersistent(false);
 			mShouldRestart=true;
-		else{
+		}else{
 			//TODO: ADW Move here all the updates instead on updateAlmostNexusUI() 
 			updateAlmostNexusUI();
-			if(key.equals("desktopRotation")){
-				Log.d("LAUNCHER PREFERENCES","Desktop rotation changed");
-		        this.setRequestedOrientation(
-        		AlmostNexusSettingsHelper.getDesktopRotation(this)?
-        				ActivityInfo.SCREEN_ORIENTATION_USER:ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
+			if(key.equals("homeOrientation")){
+		        if(!mMessWithPersistence){
+		        	changeOrientation(AlmostNexusSettingsHelper.getDesktopOrientation(this),false);
+		        }else{
+		        	//ADW: If a user changes between different orientation modes
+		        	//we temporarily disable persistence to change the app orientation
+		        	//it will be re-enabled on the next onCreate
+		        	setPersistent(false);
+		        	changeOrientation(AlmostNexusSettingsHelper.getDesktopOrientation(this),true);
+		        }
+			}else if(key.equals("systemPersistent")){
+				mMessWithPersistence=AlmostNexusSettingsHelper.getSystemPersistent(this);
+				if(mMessWithPersistence){
+					changeOrientation(AlmostNexusSettingsHelper.getDesktopOrientation(this),true);
+					//ADW: If previously in portrait, set persistent
+					//else, it will call the setPersistent on the next onCreate
+					//caused by the orientation change
+					if(savedOrientation==ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+						setPersistent(true);
+				}else{
+					setPersistent(false);
+	        		changeOrientation(AlmostNexusSettingsHelper.getDesktopOrientation(this),false);
+				}
 			}
 				
 		}
@@ -3469,7 +3508,7 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 	@Override
 	protected void onStart() {
 		// TODO Auto-generated method stub
-		if(mMessWithPersistence)setPersistent(false);
+		//if(mMessWithPersistence)setPersistent(false);
 		super.onStart();
 		//int currentOrientation=getResources().getConfiguration().orientation;
 		//if(currentOrientation!=savedOrientation){
@@ -3479,10 +3518,10 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 
 	@Override
 	protected void onStop() {
-		if(!mShouldRestart){
-			savedOrientation=getResources().getConfiguration().orientation;
-	    	if(mMessWithPersistence)setPersistent(true);
-		}
+		//if(!mShouldRestart){
+			//savedOrientation=getResources().getConfiguration().orientation;
+	    	//if(mMessWithPersistence)setPersistent(true);
+		//}
 		// TODO Auto-generated method stub
 		super.onStop();
 	}
@@ -3536,5 +3575,25 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 			}
 		}
 	}
-	
+	public Typeface getThemeFont(){
+		return themeFont;
+	}
+	private void changeOrientation(int type, boolean persistence){
+		switch (type) {
+		case AlmostNexusSettingsHelper.ORIENTATION_SENSOR:
+			if(!persistence)
+				this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);
+			else
+				this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+			break;
+		case AlmostNexusSettingsHelper.ORIENTATION_PORTRAIT:
+			this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+			break;
+		case AlmostNexusSettingsHelper.ORIENTATION_LANDSCAPE:
+			this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+			break;
+		default:
+			break;
+		}
+	}
 }
