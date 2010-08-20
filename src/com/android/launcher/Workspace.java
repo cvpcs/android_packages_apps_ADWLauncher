@@ -35,6 +35,7 @@ import android.os.Parcelable;
 import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
@@ -126,7 +127,7 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
     private Drawable mNextIndicator;
     //rogro82@xda
     int mHomeScreens = 0;
-    int mHomeScreensLoaded = 0;
+    //int mHomeScreensLoaded = 0;
     //ADW: port from donut wallpaper drawing
     private Paint mPaint;
     //private Bitmap mWallpaper;
@@ -152,7 +153,7 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
 	private long startTime;
 	private int mStatus=SENSE_CLOSED;
 	private int mAnimationDuration=400;
-	private int[][] distro={{1},{2},{1,2},{2,2},{2,1,2},{2,2,2},{2,3,2}};
+	private int[][] distro={{1},{2},{1,2},{2,2},{2,1,2},{2,2,2},{2,3,2},{3,2,3},{3,3,3}};
 	private int maxPreviewWidth;
 	private int maxPreviewHeight;
 	//Wysie: Multitouch controller
@@ -170,9 +171,9 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
 	//On those devices, a drawing cache of a 4x4widget can be really big 
 	//cause of their screen sizes, so the bitmaps are... huge...
 	//And as those devices can perform pretty well without cache... let's add an option... one more...
-	private boolean mDesktopCache=true;
-    private boolean mTouchedScrollableWidget = false;
-	
+    	private boolean mTouchedScrollableWidget = false;
+	private int mDesktopCacheType=AlmostNexusSettingsHelper.CACHE_LOW;
+	private boolean mWallpaperScroll=true;
     /**
      * Used to inflate the Workspace from XML.
      *
@@ -200,6 +201,13 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
         mDefaultScreen = AlmostNexusSettingsHelper.getDefaultScreen(context);
         if(mDefaultScreen>mHomeScreens-1) mDefaultScreen=0;
 
+        //ADW: create desired screens programatically
+        LayoutInflater layoutInflter=LayoutInflater.from(context);
+        for(int i=0;i<mHomeScreens;i++){
+        	CellLayout screen=(CellLayout)layoutInflter.inflate(R.layout.workspace_screen, this, false);
+        	addView(screen);
+        }
+        
         initWorkspace();
     }
 
@@ -219,7 +227,7 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
         multiTouchController = new MultiTouchController<Object>(this, false);
         mDesktopRows=AlmostNexusSettingsHelper.getDesktopRows(getContext());
         mDesktopColumns=AlmostNexusSettingsHelper.getDesktopColumns(getContext());
-        mDesktopCache=AlmostNexusSettingsHelper.getDesktopCache(getContext());
+        mDesktopCacheType=AlmostNexusSettingsHelper.getScreenCache(getContext());
     }
 
     @Override
@@ -228,10 +236,10 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
             throw new IllegalArgumentException("A Workspace can only have CellLayout children.");
         }
         /* Rogro82@xda Extended : Only load the number of home screens set */
-        if(mHomeScreensLoaded < mHomeScreens){
-            mHomeScreensLoaded++;
+        //if(mHomeScreensLoaded < mHomeScreens){
+            //mHomeScreensLoaded++;
             super.addView(child, index, params);
-        }
+        //}
     }
 
     @Override
@@ -326,6 +334,12 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
         scrollTo(mCurrentScreen * getWidth(), 0);
         //ADW: dots
         indicatorLevels(mCurrentScreen);
+        if(mLauncher.getDesktopIndicator()!=null){
+        	mLauncher.getDesktopIndicator().fullIndicate(mCurrentScreen);
+        	if(mLauncher.isEditMode()){
+        		mLauncher.getDesktopIndicator().hide();
+        	}
+        }
         invalidate();
     }
 
@@ -460,9 +474,14 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
     }
 
     private void updateWallpaperOffset() {
-        updateWallpaperOffset(getChildAt(getChildCount() - 1).getRight() - (mRight - mLeft));
+    	if(mWallpaperScroll){
+    		updateWallpaperOffset(getChildAt(getChildCount() - 1).getRight() - (getRight() - getLeft()));
+    	}
     }
-
+    private void centerWallpaperOffset(){
+		mWallpaperManager.setWallpaperOffsetSteps(0.5f, 0 );
+		mWallpaperManager.setWallpaperOffsets(getWindowToken(), 0.5f, 0);
+    }
     private void updateWallpaperOffset(int scrollRange) {
     	//ADW: we set a condition to not move wallpaper beyond the "bounce" zone
     	if(getScrollX()>0 && getScrollX()<getChildAt(getChildCount() - 1).getLeft()){
@@ -533,14 +552,14 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
         	}
         	//if(getChildCount()==1)x=getScrollX();
         	//ADW lets center the wallpaper when there's only one screen...
-        	if(getChildCount()==1)x=(getScrollX()-(mWallpaperWidth/2)+(getRight()/2));
+        	if(!mWallpaperScroll || getChildCount()==1)x=(getScrollX()-(mWallpaperWidth/2)+(getRight()/2));
     		canvas.drawBitmap(mWallpaperDrawable.getBitmap(), x, (getBottom() - mWallpaperHeight) / 2, mPaint);
         }
         if(!mSensemode){
 	        // If the all apps drawer is open and the drawing region for the workspace
 	        // is contained within the drawer's bounds, we skip the drawing. This requires
 	        // the drawer to be fully opaque.
-	        if((mLauncher.isAllAppsVisible()) || mLauncher.isFullScreenPreviewing()){
+	        if((mLauncher.isAllAppsVisible()) || mLauncher.isFullScreenPreviewing() ||mLauncher.isEditMode()){
 	        	return;
 	        }
 	        // ViewGroup.dispatchDraw() supports many features we don't need:
@@ -659,7 +678,12 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
             }
         }
         //ADW:updateWallpaperoffset
-        if(lwpSupport)updateWallpaperOffset();
+        if(lwpSupport){
+        	if(mWallpaperScroll)
+        		updateWallpaperOffset();
+        	else
+        		centerWallpaperOffset();
+        }
     }
 
     @Override
@@ -804,11 +828,10 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
                     	if (!mTouchedScrollableWidget)
                     	{
 	                    	// Only y axis movement. So may be a Swipe down or up gesture
-	                    	if ((y - mLastMotionY) > 0)
-	                    		mTouchState = TOUCH_SWIPE_DOWN_GESTURE;
-	                    	else
-	                    	{
-	                    		mTouchState = TOUCH_SWIPE_UP_GESTURE;
+	                    	if ((y - mLastMotionY) > 0){
+	                    		if(Math.abs(y-mLastMotionY)>(touchSlop*2))mTouchState = TOUCH_SWIPE_DOWN_GESTURE;
+	                    	}else{
+	                    		if(Math.abs(y-mLastMotionY)>(touchSlop*2))mTouchState = TOUCH_SWIPE_UP_GESTURE;
 	                    	}
                     	}
                     }
@@ -867,14 +890,17 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
          */
         return mTouchState != TOUCH_STATE_REST;
     }
-    void enableChildrenCache() {
-        if(mDesktopCache){
+	void enableChildrenCache() {
+        if(mDesktopCacheType!=AlmostNexusSettingsHelper.CACHE_DISABLED){
 	    	final int count = getChildCount();
 	        for (int i = 0; i < count; i++) {
 	        	//ADW: create cache only for current screen/previous/next.
 	        	if(i>=mCurrentScreen-1 || i<=mCurrentScreen+1){
 	        		final CellLayout layout = (CellLayout) getChildAt(i);
-	        		layout.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_LOW);
+	        		if(mDesktopCacheType==AlmostNexusSettingsHelper.CACHE_LOW)
+	        			layout.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_LOW);
+	        		else
+	        			layout.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_AUTO);
 	        		layout.setChildrenDrawnWithCacheEnabled(true);
 	        		layout.setChildrenDrawingCacheEnabled(true);
 	        	}
@@ -883,7 +909,7 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
     }
 
     void clearChildrenCache() {
-        if(mDesktopCache){
+        if(mDesktopCacheType!=AlmostNexusSettingsHelper.CACHE_DISABLED){
 	    	final int count = getChildCount();
 	        for (int i = 0; i < count; i++) {
 	            final CellLayout layout = (CellLayout) getChildAt(i);
@@ -1841,5 +1867,126 @@ public class Workspace extends WidgetSpace implements DropTarget, DragSource, Dr
 	public void setDefaultScreen(int defaultScreen) {
 		mDefaultScreen=defaultScreen;
 	}
-	
+	public void setWallpaperScroll(boolean scroll){
+		mWallpaperScroll=scroll;
+		postInvalidate();
+	}
+	/**
+	 * ADW: hide live wallpaper to speedup the app drawer
+	 * I think the live wallpaper needs to support the "hide" command
+	 * and not every LWP supports it.
+	 * http://developer.android.com/intl/de/reference/android/app/WallpaperManager.html#sendWallpaperCommand%28android.os.IBinder,%20java.lang.String,%20int,%20int,%20int,%20android.os.Bundle%29
+	 * @param hide
+	 */
+    public void hideWallpaper(boolean hide) {
+    	if (hide)
+    		mWallpaperManager.sendWallpaperCommand(getWindowToken(),
+    				"hide", 0, 0, 0, null);
+    	else
+    		mWallpaperManager.sendWallpaperCommand(getWindowToken(),
+    				"show", 0, 0, 0, null);
+    }
+    /**
+     * ADW: Remove the specified screen and all the contents
+     * Almos update remaining screens content inside model
+     * @param screen
+     */
+    protected void removeScreen(int screen){
+        final CellLayout layout = (CellLayout) getChildAt(screen);
+        int childCount = layout.getChildCount();
+        final LauncherModel model = Launcher.getModel();
+        for (int j = 0; j < childCount; j++) {
+            final View view = layout.getChildAt(j);
+            Object tag = view.getTag();
+            //DELETE ALL ITEMS FROM SCREEN
+            final ItemInfo item = (ItemInfo) tag;
+            if (item.container == LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+                if (item instanceof LauncherAppWidgetInfo) {
+                    model.removeDesktopAppWidget((LauncherAppWidgetInfo) item);
+                } else {
+                    model.removeDesktopItem(item);
+                }
+            }
+            if (item instanceof UserFolderInfo) {
+                final UserFolderInfo userFolderInfo = (UserFolderInfo)item;
+                LauncherModel.deleteUserFolderContentsFromDatabase(mLauncher, userFolderInfo);
+                model.removeUserFolder(userFolderInfo);
+            } else if (item instanceof LauncherAppWidgetInfo) {
+                final LauncherAppWidgetInfo launcherAppWidgetInfo = (LauncherAppWidgetInfo) item;
+                final LauncherAppWidgetHost appWidgetHost = mLauncher.getAppWidgetHost();
+                if (appWidgetHost != null) {
+                    appWidgetHost.deleteAppWidgetId(launcherAppWidgetInfo.appWidgetId);
+                }
+            }
+            LauncherModel.deleteItemFromDatabase(mLauncher, item);
+        }
+        moveItemPositions(screen, -1);
+        removeView(getChildAt(screen));
+        if(getChildCount()<=mCurrentScreen){
+        	mCurrentScreen=0;
+        	setCurrentScreen(mCurrentScreen);
+        }
+        if(getChildCount()<mDefaultScreen){
+        	AlmostNexusSettingsHelper.setDefaultScreen(mLauncher, 0);
+        	mDefaultScreen=0;
+        }
+    	if(mLauncher.getDesktopIndicator()!=null)mLauncher.getDesktopIndicator().setItems(getChildCount());
+    	indicatorLevels(mCurrentScreen);        
+        AlmostNexusSettingsHelper.setDesktopScreens(mLauncher, getChildCount());
+    }
+    protected CellLayout addScreen(int position){
+        LayoutInflater layoutInflter=LayoutInflater.from(mLauncher);
+    	CellLayout screen=(CellLayout)layoutInflter.inflate(R.layout.workspace_screen, this, false);
+    	addView(screen,position);
+    	screen.setOnLongClickListener(mLongClickListener);
+    	if(mLauncher.getDesktopIndicator()!=null)mLauncher.getDesktopIndicator().setItems(getChildCount());
+    	indicatorLevels(mCurrentScreen);
+    	AlmostNexusSettingsHelper.setDesktopScreens(mLauncher, getChildCount());
+    	moveItemPositions(position, +1);
+    	return screen;
+    }
+    protected void swapScreens(int screen_a, int screen_b){
+    	//Swap database positions for both screens
+        CellLayout layout = (CellLayout) getChildAt(screen_a);
+        int childCount = layout.getChildCount();
+        for (int j = 0; j < childCount; j++) {
+            final View view = layout.getChildAt(j);
+            Object tag = view.getTag();
+            final ItemInfo item = (ItemInfo) tag;
+            if(item.container==LauncherSettings.Favorites.CONTAINER_DESKTOP){
+                LauncherModel.moveItemInDatabase(mLauncher, item, item.container, screen_b, item.cellX, item.cellY);
+            }
+        }
+        layout = (CellLayout) getChildAt(screen_b);
+        childCount = layout.getChildCount();
+        for (int j = 0; j < childCount; j++) {
+            final View view = layout.getChildAt(j);
+            Object tag = view.getTag();
+            final ItemInfo item = (ItemInfo) tag;
+            if(item.container==LauncherSettings.Favorites.CONTAINER_DESKTOP){
+                LauncherModel.moveItemInDatabase(mLauncher, item, item.container, screen_a, item.cellX, item.cellY);
+            }
+        }
+    	//swap the views
+    	CellLayout a=(CellLayout) getChildAt(screen_a);
+    	LayoutParams lp=a.getLayoutParams();
+    	detachViewFromParent(a);
+    	attachViewToParent(a, screen_b, lp);
+    	requestLayout();
+    }
+    private void moveItemPositions(int screen, int diff){
+        //MOVE THE REMAINING ITEMS FROM OTHER SCREENS
+        for (int i=screen+1;i<getChildCount();i++){
+            final CellLayout layout = (CellLayout) getChildAt(i);
+            int childCount = layout.getChildCount();
+            for (int j = 0; j < childCount; j++) {
+                final View view = layout.getChildAt(j);
+                Object tag = view.getTag();
+                final ItemInfo item = (ItemInfo) tag;
+                if(item.container==LauncherSettings.Favorites.CONTAINER_DESKTOP){
+	                LauncherModel.moveItemInDatabase(mLauncher, item, item.container, item.screen+diff, item.cellX, item.cellY);
+                }
+            }
+        }
+    }
 }

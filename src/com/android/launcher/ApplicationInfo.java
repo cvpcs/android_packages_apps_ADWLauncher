@@ -26,22 +26,22 @@ import android.graphics.drawable.Drawable;
  * Represents a launchable application. An application is made of a name (or title),
  * an intent and an icon.
  */
-class ApplicationInfo extends ItemInfo {
+public class ApplicationInfo extends ItemInfo {
 
     /**
      * The application name.
      */
-    CharSequence title;
+    public CharSequence title;
 
     /**
      * The intent used to start the application.
      */
-    Intent intent;
+    public Intent intent;
 
     /**
      * The application icon.
      */
-    Drawable icon;
+    public Drawable icon;
 
     /**
      * When set to true, indicates that the icon has been resized.
@@ -53,6 +53,8 @@ class ApplicationInfo extends ItemInfo {
      * or from a custom Bitmap (if true.)
      */
     boolean customIcon;
+    
+    int hashCode=0;
 
     /**
      * If isShortcut=true and customIcon=false, this contains a reference to the
@@ -120,8 +122,42 @@ class ApplicationInfo extends ItemInfo {
         }
     }
 
-    @Override
-    public String toString() {
-        return title.toString();
-    }
+	@Override
+	public String toString() {
+		return title.toString();
+	}
+
+	@Override
+	public boolean equals(Object aThat) {
+		// check for self-comparison
+		if (this == aThat)
+			return true;
+		//ADW: Shortcuts (contacts, bookmarks, etc) don't have component.....
+		if(this.intent.getComponent()==null)
+			return super.equals(aThat);
+		// use instanceof instead of getClass here for two reasons
+		// 1. if need be, it can match any supertype, and not just one class;
+		// 2. it renders an explict check for "that == null" redundant, since
+		// it does the check for null already - "null instanceof [type]" always
+		// returns false. (See Effective Java by Joshua Bloch.)
+		if (!(aThat instanceof ApplicationInfo))
+			return false;
+		// Alternative to the above line :
+
+		// cast to native object is now safe
+		ApplicationInfo that = (ApplicationInfo) aThat;
+		if(that.intent.getComponent()==null)
+			return false;
+		// now a proper field-by-field evaluation can be made
+		return this.intent.getComponent().flattenToString().equals(
+				that.intent.getComponent().flattenToString());
+	}
+
+	@Override
+	public int hashCode() {
+		if (hashCode == 0) {
+			hashCode = this.intent.getComponent().flattenToString().hashCode();
+		}
+		return hashCode;
+	}
 }

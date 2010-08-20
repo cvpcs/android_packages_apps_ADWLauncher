@@ -7,10 +7,15 @@ public final class AlmostNexusSettingsHelper {
 	public static final int ORIENTATION_SENSOR=1;
 	public static final int ORIENTATION_PORTRAIT=2;
 	public static final int ORIENTATION_LANDSCAPE=3;
+	
+	public static final int CACHE_LOW=1;
+	public static final int CACHE_AUTO=2;
+	public static final int CACHE_DISABLED=3;
+	
 	private static final String ALMOSTNEXUS_PREFERENCES = "launcher.preferences.almostnexus";
-	private static final String[] restart_keys={"desktopScreens","drawerNew","uiHideLabels","highlights_color",
+	private static final String[] restart_keys={"drawerNew","uiHideLabels","highlights_color",
 		"highlights_color_focus","uiNewSelectors","desktopRows","desktopColumns","autosizeIcons","uiDesktopIndicatorType",
-		"uiScrollableWidgets","desktopCache","uiDesktopIndicator","themePackageName","themeIcons"};
+		"uiScrollableWidgets","screenCache","uiDesktopIndicator","themePackageName","themeIcons"};
 
 	public static boolean needsRestart(String key){
 		for(int i=0;i<restart_keys.length;i++){
@@ -215,9 +220,9 @@ public final class AlmostNexusSettingsHelper {
 		boolean newD = sp.getBoolean("fadeDrawerLabels", context.getResources().getBoolean(R.bool.config_fadeDrawerLabels));
 		return newD;
 	}
-	public static boolean getDesktopCache(Context context) {
+	public static int getScreenCache(Context context) {
 		SharedPreferences sp = context.getSharedPreferences(ALMOSTNEXUS_PREFERENCES, Context.MODE_PRIVATE);
-		boolean newD = sp.getBoolean("desktopCache", context.getResources().getBoolean(R.bool.config_desktopCache));
+		int newD = Integer.valueOf(sp.getString("screenCache", context.getResources().getString(R.string.config_screenCache)));
 		return newD;
 	}
 	public static boolean getDesktopIndicator(Context context) {
@@ -326,5 +331,33 @@ public final class AlmostNexusSettingsHelper {
 		int newD = Integer.valueOf(sp.getString("homeOrientation", context.getResources().getString(R.string.config_orientation_default)));
 		return newD;
 	}
+	public static boolean getWallpaperScrolling(Context context) {
+		SharedPreferences sp = context.getSharedPreferences(ALMOSTNEXUS_PREFERENCES, Context.MODE_PRIVATE);
+		boolean newD = sp.getBoolean("wallpaper_scrolling", true);
+		return newD;
+	}
+	public static void setDesktopScreens(Context context,int screens) {
+		SharedPreferences sp = context.getSharedPreferences(ALMOSTNEXUS_PREFERENCES, Context.MODE_PRIVATE);
+	    SharedPreferences.Editor editor = sp.edit();
+		editor.putInt("desktopScreens", screens-1);
+	    editor.commit();
+	}
+	public static void setDefaultScreen(Context context,int screens) {
+		SharedPreferences sp = context.getSharedPreferences(ALMOSTNEXUS_PREFERENCES, Context.MODE_PRIVATE);
+	    SharedPreferences.Editor editor = sp.edit();
+		editor.putInt("defaultScreen", screens);
+	    editor.commit();
+	}
 	
+	public static int getCurrentAppCatalog(Context context) {
+		SharedPreferences sp = context.getSharedPreferences(ALMOSTNEXUS_PREFERENCES, Context.MODE_PRIVATE);
+		int newD = sp.getInt("currentAppCatalog", -1);
+		return newD;
+	}
+	public static void setCurrentAppCatalog(Context context, int group) {
+		SharedPreferences sp = context.getSharedPreferences(ALMOSTNEXUS_PREFERENCES, Context.MODE_PRIVATE);
+	    SharedPreferences.Editor editor = sp.edit();
+		editor.putInt("currentAppCatalog", group);
+	    editor.commit();
+	}
 }

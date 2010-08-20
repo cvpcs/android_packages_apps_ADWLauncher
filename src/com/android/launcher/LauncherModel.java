@@ -26,6 +26,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
+import android.content.res.XmlResourceParser;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -44,13 +45,15 @@ import java.lang.ref.WeakReference;
 import java.text.Collator;
 import java.net.URISyntaxException;
 
+import com.android.launcher.IconShader.CompiledIconShader;
+
 /**
  * Maintains in-memory state of the Launcher. It is expected that there should be only one
  * LauncherModel object held in a static. Also provide APIs for updating the database state
  * for the Launcher.
  */
 public class LauncherModel {
-    static final boolean DEBUG_LOADERS = false;
+    static final boolean DEBUG_LOADERS = true;
     static final String LOG_TAG = "HomeLoaders";
 
     private static final int UI_NOTIFICATION_RATE = 4;
@@ -66,8 +69,9 @@ public class LauncherModel {
     private ArrayList<LauncherAppWidgetInfo> mDesktopAppWidgets;
     private HashMap<Long, FolderInfo> mFolders;
 
-    private ArrayList<ApplicationInfo> mApplications;
-    private ApplicationsAdapter mApplicationsAdapter;
+    public static ArrayList<ApplicationInfo> mApplications;
+    
+    public static ApplicationsAdapter mApplicationsAdapter;
     private ApplicationsLoader mApplicationsLoader;
     private DesktopItemsLoader mDesktopItemsLoader;
     private Thread mApplicationsLoaderThread;
@@ -76,7 +80,10 @@ public class LauncherModel {
     private int mDesktopRows;
     private final HashMap<ComponentName, ApplicationInfo> mAppInfoCache =
             new HashMap<ComponentName, ApplicationInfo>(INITIAL_ICON_CACHE_CAPACITY);
-
+    
+    private static String compiledIconShaderName;
+    private static CompiledIconShader compiledIconShader;
+    
     synchronized void abortLoaders() {
         if (DEBUG_LOADERS) d(LOG_TAG, "aborting loaders");
 
@@ -177,7 +184,7 @@ public class LauncherModel {
             return;
         }
 
-        if (packageName != null && packageName.length() > 0) {
+        if (packageName != null && packageName.length() > 0 && mApplicationsAdapter!=null) {
             final PackageManager packageManager = launcher.getPackageManager();
             final List<ResolveInfo> matches = findActivitiesForPackage(packageManager, packageName);
 
@@ -189,28 +196,32 @@ public class LauncherModel {
                     adapter.setNotifyOnChange(false);
                     adapter.add(makeAndCacheApplicationInfo(packageManager, cache, info, launcher));
                 }
+				adapter.updateDataSet();
 
-                adapter.sort(new ApplicationInfoComparator());
-                adapter.notifyDataSetChanged();
+                //adapter.sort(new ApplicationInfoComparator());
+                //adapter.notifyDataSetChanged();
             }
         }
     }
 
     synchronized void removePackage(Launcher launcher, String packageName) {
+    	// for add/remove Package, we need use applications adapter's "full" list.
+    	
         if (mApplicationsLoader != null && mApplicationsLoader.isRunning()) {
             dropApplicationCache(); // TODO: this could be optimized
             startApplicationsLoaderLocked(launcher, false);
             return;
         }
 
-        if (packageName != null && packageName.length() > 0) {
+        if (packageName != null && packageName.length() > 0 && mApplicationsAdapter!=null) {
             final ApplicationsAdapter adapter = mApplicationsAdapter;
 
             final List<ApplicationInfo> toRemove = new ArrayList<ApplicationInfo>();
-            final int count = adapter.getCount();
+            final ArrayList<ApplicationInfo> allItems = adapter.allItems;
+            final int count = allItems.size();
 
             for (int i = 0; i < count; i++) {
-                final ApplicationInfo applicationInfo = adapter.getItem(i);
+                final ApplicationInfo applicationInfo = allItems.get(i);
                 final Intent intent = applicationInfo.intent;
                 final ComponentName component = intent.getComponent();
                 if (packageName.equals(component.getPackageName())) {
@@ -226,8 +237,9 @@ public class LauncherModel {
             }
 
             if (toRemove.size() > 0) {
-                adapter.sort(new ApplicationInfoComparator());
-                adapter.notifyDataSetChanged();
+				adapter.updateDataSet();
+                //adapter.sort(new ApplicationInfoComparator());
+                //adapter.notifyDataSetChanged();
             }
         }
     }
@@ -238,7 +250,7 @@ public class LauncherModel {
             return;
         }
 
-        if (packageName != null && packageName.length() > 0) {
+        if (packageName != null && packageName.length() > 0 && mApplicationsAdapter!=null) {
             final PackageManager packageManager = launcher.getPackageManager();
             final ApplicationsAdapter adapter = mApplicationsAdapter;
 
@@ -260,8 +272,9 @@ public class LauncherModel {
             if (syncLocked(launcher, packageName)) changed = true;
 
             if (changed) {
-                adapter.sort(new ApplicationInfoComparator());
-                adapter.notifyDataSetChanged();
+				adapter.updateDataSet();
+                //adapter.sort(new ApplicationInfoComparator());
+                //adapter.notifyDataSetChanged();
             }
         }
     }
@@ -282,11 +295,12 @@ public class LauncherModel {
             return;
         }
 
-        if (packageName != null && packageName.length() > 0) {
+        if (packageName != null && packageName.length() > 0 && mApplicationsAdapter!=null) {
             if (syncLocked(launcher, packageName)) {
                 final ApplicationsAdapter adapter = mApplicationsAdapter;
-                adapter.sort(new ApplicationInfoComparator());
-                adapter.notifyDataSetChanged();                
+				adapter.updateDataSet();
+                //adapter.sort(new ApplicationInfoComparator());
+                //adapter.notifyDataSetChanged();                
             }
         }
     }
@@ -295,7 +309,7 @@ public class LauncherModel {
         final PackageManager packageManager = launcher.getPackageManager();
         final List<ResolveInfo> matches = findActivitiesForPackage(packageManager, packageName);
 
-        if (matches.size() > 0) {
+        if (matches.size() > 0 && mApplicationsAdapter!=null) {
             final ApplicationsAdapter adapter = mApplicationsAdapter;
 
             // Find disabled activities and remove them from the adapter
@@ -472,22 +486,9 @@ public class LauncherModel {
         if (application.title == null) {
             application.title = info.activityInfo.name;
         }
-        //TODO:ADW Load icon from theme/iconpack
-        String themePackage=AlmostNexusSettingsHelper.getThemePackageName(context, Launcher.THEME_DEFAULT);
-        if(themePackage.equals(Launcher.THEME_DEFAULT)){
-        	application.icon = Utilities.createIconThumbnail(info.activityInfo.loadIcon(manager), context);
-        }else{
-        	//Drawable tmpIcon = loadIconFromTheme(context, manager, themePackage,info.activityInfo.packageName+"_"+info.activityInfo.name);
-        	Drawable tmpIcon = loadIconFromTheme(context, manager, themePackage,info.activityInfo.name);
-        	if(tmpIcon==null){
-        		application.icon = Utilities.createIconThumbnail(info.activityInfo.loadIcon(manager), context);
-        	}else{
-        		application.icon = Utilities.createIconThumbnail(tmpIcon, context);
-        	}
-        }
         
-        /*application.icon =
-                Utilities.createIconThumbnail(info.activityInfo.loadIcon(manager), context);*/
+        application.icon = getIcon(manager, context, info.activityInfo);
+        
         application.filtered = false;
     }
  
@@ -600,8 +601,9 @@ public class LauncherModel {
 
             buffer.clear();
 
-            applicationList.sort(new ApplicationInfoComparator());
-            applicationList.notifyDataSetChanged();
+			applicationList.updateDataSet();
+            //applicationList.sort(new ApplicationInfoComparator());
+            //applicationList.notifyDataSetChanged();
         }
 
         boolean add(ApplicationInfo application) {
@@ -1270,25 +1272,13 @@ public class LauncherModel {
         }
     	
         final ResolveInfo resolveInfo = manager.resolveActivity(intent, 0);
-        /*if (resolveInfo == null) {
-            return null;
-        }*/
-        //TODO:ADW Load icon from theme/iconpack
+        
         final ApplicationInfo info = new ApplicationInfo();
         if(resolveInfo!=null){
 	        final ActivityInfo activityInfo = resolveInfo.activityInfo;
-	        String themePackage=AlmostNexusSettingsHelper.getThemePackageName(context, Launcher.THEME_DEFAULT);
-	        if(themePackage.equals(Launcher.THEME_DEFAULT)){
-	        	info.icon = Utilities.createIconThumbnail(activityInfo.loadIcon(manager), context);
-	        }else{
-	        	//Drawable tmpIcon = loadIconFromTheme(context, manager, themePackage,activityInfo.packageName+"_"+activityInfo.name);
-	        	Drawable tmpIcon = loadIconFromTheme(context, manager, themePackage,activityInfo.name);
-	        	if(tmpIcon==null){
-	        		info.icon = Utilities.createIconThumbnail(activityInfo.loadIcon(manager), context);
-	        	}else{
-	        		info.icon = Utilities.createIconThumbnail(tmpIcon, context);
-	        	}
-	        }
+	        
+	        info.icon = getIcon(manager, context, activityInfo);
+	        
 	        if (info.title == null || info.title.length() == 0) {
 	            info.title = activityInfo.loadLabel(manager);
 	        }
@@ -1304,7 +1294,7 @@ public class LauncherModel {
     }
 
     /**
-     * Make an ApplicationInfo object for a sortcut
+     * Make an ApplicationInfo object for a shortcut
      */
     private ApplicationInfo getApplicationInfoShortcut(Cursor c, Context context,
             int iconTypeIndex, int iconPackageIndex, int iconResourceIndex, int iconIndex) {
@@ -1352,7 +1342,7 @@ public class LauncherModel {
     }
 
     /**
-     * Remove an item from the in-memory represention of a user folder. Does not change the DB.
+     * Remove an item from the in-memory representation of a user folder. Does not change the DB.
      */
     void removeUserFolderItem(UserFolderInfo folder, ItemInfo info) {
         //noinspection SuspiciousMethodCalls
@@ -1522,33 +1512,61 @@ public class LauncherModel {
         cr.delete(LauncherSettings.Favorites.CONTENT_URI,
                 LauncherSettings.Favorites.CONTAINER + "=" + info.id, null);
     }
+    
     /**
-     * ADW: Load a theme icon
-     * @param context
-     * @param manager
-     * @param themePackage
-     * @param string
-     * @return
+     * Get an the icon for an activity
+     * Accounts for theme and icon shading
      */
-    static Drawable loadIconFromTheme(Context context,
-			PackageManager manager, String themePackage, String resourceName) {
-		Drawable icon=null;
-		if(AlmostNexusSettingsHelper.getThemeIcons(context)){
-	    	Resources themeResources=null;
-	    	resourceName=resourceName.toLowerCase().replace(".", "_");
-	    	try {
-				themeResources=manager.getResourcesForApplication(themePackage);
-			} catch (NameNotFoundException e) {
-				//e.printStackTrace();
-			}
-			if(themeResources!=null){
-				int resource_id=themeResources.getIdentifier (resourceName, "drawable", themePackage);
-				if(resource_id!=0){
-					icon=themeResources.getDrawable(resource_id);
-				}
-			}
-		}
-		return icon;
-	}
-
+    static Drawable getIcon(PackageManager manager, Context context, ActivityInfo activityInfo) {
+        String themePackage=AlmostNexusSettingsHelper.getThemePackageName(context, Launcher.THEME_DEFAULT);
+        Drawable icon = null;
+        if(themePackage.equals(Launcher.THEME_DEFAULT)){
+            icon = Utilities.createIconThumbnail(activityInfo.loadIcon(manager), context);
+        }else{
+            // get from theme
+            Resources themeResources = null;
+            if(AlmostNexusSettingsHelper.getThemeIcons(context)){
+                activityInfo.name=activityInfo.name.toLowerCase().replace(".", "_");
+                try {
+                    themeResources = manager.getResourcesForApplication(themePackage);
+                } catch (NameNotFoundException e) {
+                    //e.printStackTrace();
+                }
+                if(themeResources!=null){
+                    int resource_id = themeResources.getIdentifier(activityInfo.name, "drawable", themePackage);
+                    if(resource_id!=0){
+                        icon=themeResources.getDrawable(resource_id);
+                    }
+                    
+                    // use IconShader
+                    if(icon==null){
+                        if (compiledIconShaderName==null ||
+                            compiledIconShaderName.compareTo(themePackage)!=0){
+                            compiledIconShader = null;
+                            resource_id = themeResources.getIdentifier("shader", "xml", themePackage);
+                            if(resource_id!=0){
+                                XmlResourceParser xpp = themeResources.getXml(resource_id);
+                                compiledIconShader = IconShader.parseXml(xpp);
+                            }
+                        }
+                        
+                        if(compiledIconShader!=null){
+                            icon = Utilities.createIconThumbnail(activityInfo.loadIcon(manager), context);
+                            try {
+                                icon = IconShader.processIcon(icon, compiledIconShader);
+                            } catch (Exception e) {}
+                        }
+                    }
+                }
+            }
+            
+            if(icon==null){
+                icon = Utilities.createIconThumbnail(activityInfo.loadIcon(manager), context);
+            }else{
+                icon = Utilities.createIconThumbnail(icon, context);
+            }
+        }
+        return icon;
+    }
+    
 }

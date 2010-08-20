@@ -65,7 +65,7 @@
     <string name="pref_label_settings">ADW Settings</string>
     <!-- Screen preferences -->
     <string name="pref_title_screen_preferences">Pantalla</string>
-    <string name="pref_summary_screen_preferences">Numero de escritorios, escritorio por defecto, etc...</string>
+    <string name="pref_summary_screen_preferences">Escritorio por defecto, disposición, etc...</string>
 
     <string name="pref_title_wallpaper_hack">Wallpaper Hack</string>
     <string name="pref_summary_wallpaper_hack">Mejora el desplazamiento entre escritorios. Desactívalo si tienes FCs con wallpapers grandes.</string>
@@ -75,10 +75,6 @@
 
     <string name="pref_title_hide_statusbar">Ocultar barra de estado</string>
     <string name="pref_summary_hide_statusbar">Oculta la barra de estado</string>
-
-    <string name="pref_title_desktop_screens">Número de escritorios</string>
-    <string name="pref_summary_desktop_screens">Selecciona el número de escritorios que deseas</string>
-    <string name="pref_dialog_desktop_screen">Selecciona el número de escritorios que deseas</string>
 
     <string name="pref_title_default_screen">Escritorio por defecto</string>
     <string name="pref_summary_default_screen">Selecciona el escritorio por defecto</string>
@@ -216,7 +212,7 @@
     <string name="import_export_sdcard_unmounted">No tienes tarjeta SD!</string>
     
     <!-- XML Import/Export strings -->
-    <string name="message_dialog_export">Exportar ADW settings? LA copia anterior se eliminará.</string>
+    <string name="message_dialog_export">Exportar ADW settings? La copia anterior se eliminará.</string>
     <string name="xml_export_dialog">Exportando ADW settings...</string>
     <string name="xml_export_success">ADW settings exportado con éxito!</string>
     <string name="xml_export_error">Error exportando ADW settings!</string>    
@@ -265,8 +261,8 @@
 	<string name="widget_columns">Columnas</string>
 	<string name="widget_rows">Filas</string>
     
-    <string name="pref_title_screen_cache">Usa cache de dibujo</string>
-    <string name="pref_summary_screen_cache">Mejora el scroll. Desactívalo si usas MUCHÍSIMOS widgets.</string>
+    <string name="pref_title_screen_cache">Cache de dibujo</string>
+    <string name="pref_summary_screen_cache">Mejora el scroll a costa de usar memoria</string>
 
     <string name="pref_title_desktop_indicator">Mostrar indicador de pantalla</string>
     <string name="pref_summary_desktop_indicator">Muestra una ayuda visual de scroll de escritorio</string>
@@ -300,4 +296,42 @@
 	<string name="pref_themes_apply_theme">Aplicar tema!</string>
 	<string name="pref_themes_get_themes">Obtener temas!</string>
 
+    <string name="pref_title_wallpaper_scrolling">Desplazar wallpaper</string>
+    <string name="pref_summary_wallpaper_scrolling">Mover el wallpaper junto con el escritorio</string>
+	<string name="message_delete_desktop_screen">Remove this screen and all the content?</string>
+	<string name="message_cannot_delete_desktop_screen">No puedes eliminar la última pantalla</string>
+	<string name="message_cannot_add_desktop_screen">No puedes añadir más pantallas</string>
+	<string name="message_cannot_swap_desktop_screen">No puedes intercambiar las pantallas</string>
+	
+	<string name="menu_edit">Editar</string>
+	
+	<string name="pref_label_shirtcuts">Icono personalizado</string>
+	<string name="pref_label_activities">Actividades</string>
+	<string name="pref_label_activities_loading">Cargando lista...</string>
+	<string name="shirtcut_header">Selecciona la actividad deseada.\nPuedes seleccionar un icono personalizado.</string>
+	<string name="shirtcut_pick_activity">Seleccionar actividad</string>
+	<string name="shirtcut_label">Etiqueta</string>
+	<string name="shirtcuts_select_picture">Seleccionar imagen</string>
+	<string name="shirtcuts_crop_picture">Recortar imagen</string>
+	<string name="shirtcuts_icon_packs">ADWTheme IconPacks</string>
+	<string name="shirtcuts_select_icon_type">Elige el tipo de icono</string>
+	<string name="shirtcuts_select_icon_pack">Elige un pack</string>
+	
+	<string name="selectAll">Seleccionar todos</string>
+	<string name="AppGroupAll">"TODAS"</string>
+	<string name="AppGroupAdd">"Nuevo grupo"</string>
+	<string name="AppGroupDel">"Borrar grupo"</string>
+    <string name="AppGroupDelLong">"Eliminar el\ngrupo actual?"</string>
+	<string name="AppGroupChoose">"Seleccionar grupo"</string>
+	<string name="AppGroupConfig">"Configurar grupo"</string>
+	<string name="AppGroupRename">"Nuevo grupo"</string>
+	<string name="AppGroupConfigError">"No puede smodificar este grupo"</string>
+	<string name="AppGroupAddError">"No puedes tener más grupos"</string>
+	<string name="rename_group_title">Nuevo grupo</string>
+	<string name="rename_group_label">Nombre</string>
+
+	<string name="pref_title_adw_restart">Reiniciar ADW</string>
+	<string name="pref_summary_adw_restart">Cierra y reinicia ADW.Launcher</string>
+	<string name="pref_title_adw_reset">Restablecer ADW</string>
+	<string name="pref_summary_adw_reset">Borra la configuración de ADW.Launcher y reinicia</string>	
 </resources>

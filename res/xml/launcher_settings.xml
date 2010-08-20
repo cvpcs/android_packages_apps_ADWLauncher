@@ -11,12 +11,12 @@
 			android:defaultValue="false"
 			android:summary="@string/pref_summary_hide_statusbar"
 			android:key="hideStatusbar" />
+		<CheckBoxPreference android:title="@string/pref_title_wallpaper_scrolling"
+			android:defaultValue="true"
+			android:summary="@string/pref_summary_wallpaper_scrolling"
+			android:key="wallpaper_scrolling" />
 		<PreferenceCategory
             android:title="@string/pref_title_screens_preferencecategory">
-			<com.android.launcher.DialogSeekBarPreference
-				android:title="@string/pref_title_desktop_screens" android:summary="@string/pref_summary_desktop_screens"
-				android:dialogMessage="@string/pref_dialog_desktop_screen"
-				android:key="desktopScreens" android:defaultValue="4" android:max="6" />
 			<com.android.launcher.DialogSeekBarPreference
 				android:title="@string/pref_title_default_screen" android:summary="@string/pref_summary_default_screen"
 				android:dialogMessage="@string/pref_dialog_default_screen"
@@ -175,10 +175,14 @@
 			android:defaultValue="true"
 			android:summary="@string/pref_summary_wallpaper_hack"
 			android:key="wallpaperHack" />
-		<CheckBoxPreference android:title="@string/pref_title_screen_cache"
-			android:defaultValue="@bool/config_desktopCache"
-			android:summary="@string/pref_summary_screen_cache"
-			android:key="desktopCache" />
+		<ListPreference
+		  android:key="screenCache"
+		  android:title="@string/pref_title_screen_cache"
+		  android:summary="@string/pref_summary_screen_cache"
+		  android:defaultValue="@string/config_screenCache"
+		  android:entryValues="@array/screen_cache_values"
+		  android:entries="@array/screen_cache_entries"
+		/>
 		<CheckBoxPreference android:key="uiScrollableWidgets"
 			android:title="@string/pref_title_scrollable_widgets"
 			android:summary="@string/pref_summary_scrollable_widgets"
@@ -336,5 +340,13 @@
 			android:key="adw_version"
 			android:title="@string/pref_title_adw_version"
 			android:summary="@string/adw_version"/>
+		<Preference
+			android:key="adw_restart"
+			android:title="@string/pref_title_adw_restart"
+			android:summary="@string/pref_summary_adw_restart"/>
+		<Preference
+			android:key="adw_reset"
+			android:title="@string/pref_title_adw_reset"
+			android:summary="@string/pref_summary_adw_reset"/>
 	</PreferenceCategory>
 </PreferenceScreen>

@@ -31,6 +31,7 @@ import android.preference.Preference.OnPreferenceClickListener;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
+import android.content.SharedPreferences.Editor;
 import android.content.pm.*;
 import android.content.res.Resources;
 import android.content.*;
@@ -81,9 +82,6 @@ public class MyLauncherSettings extends PreferenceActivity implements OnPreferen
         columnsDesktop.setMin(3);
         DialogSeekBarPreference rowsDesktop= (DialogSeekBarPreference) findPreference("desktopRows");
         rowsDesktop.setMin(3);
-        DialogSeekBarPreference desktopScreens= (DialogSeekBarPreference) findPreference("desktopScreens");
-        desktopScreens.setMin(1);
-        desktopScreens.setOnPreferenceChangeListener(this);
         DialogSeekBarPreference defaultScreen= (DialogSeekBarPreference) findPreference("defaultScreen");
         defaultScreen.setMin(1);
         defaultScreen.setMax(AlmostNexusSettingsHelper.getDesktopScreens(this)-1);
@@ -115,7 +113,28 @@ public class MyLauncherSettings extends PreferenceActivity implements OnPreferen
         	orientations.setEnabled(true);
         }
         mContext=this;
-        
+        //ADW: restart and reset preferences
+        Preference restart=findPreference("adw_restart");
+        Preference reset=findPreference("adw_reset");
+        restart.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+			public boolean onPreferenceClick(Preference preference) {
+				shouldRestart=true;
+				finish();
+				return false;
+			}
+		});
+        reset.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+			public boolean onPreferenceClick(Preference preference) {
+				SharedPreferences sp = getSharedPreferences(ALMOSTNEXUS_PREFERENCES, Context.MODE_PRIVATE);
+				Editor ed=sp.edit();
+				ed.clear();
+				ed.commit();
+				shouldRestart=true;
+				finish();
+				return false;
+			}
+		});
+        //End restart/reset
         Preference exportToXML = findPreference("xml_export");
         exportToXML.setOnPreferenceClickListener(new OnPreferenceClickListener() {        
 			public boolean onPreferenceClick(Preference preference) {
@@ -354,10 +373,7 @@ public class MyLauncherSettings extends PreferenceActivity implements OnPreferen
 		super.onPause();
 	}
 	public boolean onPreferenceChange(Preference preference, Object newValue) {
-		if (preference.getKey().equals("desktopScreens")) {
-			DialogSeekBarPreference pref = (DialogSeekBarPreference) findPreference("defaultScreen");
-			pref.setMax((Integer) newValue);
-		}else if(preference.getKey().equals("uiDots")) {
+		if(preference.getKey().equals("uiDots")) {
 			CheckBoxPreference ab2=(CheckBoxPreference) findPreference("uiAB2");
 			if(newValue.equals(true)){
 				ab2.setChecked(false);
