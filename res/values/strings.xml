@@ -130,7 +130,7 @@
     <!-- Text to show user in place of a gadget when we can't display it properly -->
     <string name="gadget_error_text">Problem loading widget</string>
     <!-- ADW Version Information -->
-    <string name="adw_version">Version 1.1.4 System</string>
+    <string name="adw_version">Version 1.1.5 System</string>
     <!-- ADW Settings -->
     <string name="pref_label_settings">ADW Settings</string>
     <!-- Screen preferences -->
@@ -271,6 +271,10 @@
     <string name="pref_message_restart_froyo">Changing this setting will make the Launcher restart itself</string>
     <string name="drop_to_uninstall">Drop to Uninstall</string>
 
+    <string name="toast_widgets_not_supported">Widgets not supported... sorry :-)</string>
+    <string name="toast_unknown_item">Unknown item. We can\'t add unknown item types :-)</string>
+    <string name="toast_no_application_def">No application defined yet, drop something here! :)</string>
+
     <string name="pref_title_import_export">Backup and restore</string>
     <string name="pref_title_xml">ADW settings</string>
     <string name="pref_title_xml_import">Restore ADW settings</string>
@@ -333,7 +337,7 @@
     <string name="pref_summary_fade_drawer_labels">Labels fade instead of just appear. Uses more ram/cpu</string>
 
 	<string name="widget_config_dialog_title">Widget span config</string>
-	<string name="widget_config_dialog_summary">Home many rows/columns will the widget take?</string>
+	<string name="widget_config_dialog_summary">How many rows/columns will the widget take?</string>
 	<string name="widget_columns">Columns</string>
 	<string name="widget_rows">Rows</string>
     
@@ -411,4 +415,7 @@
 	<string name="pref_title_adw_reset">Reset ADW</string>
 	<string name="pref_summary_adw_reset">Clear ADW.Launcher settings and restart</string>
 	
+	<string name="need_scrollable">The widget you want to add needs \'scrollable widgets support\' which is currently disabled. Do you want to enable it now?</string>
+	<string name="action_yes">Yes</string>
+	<string name="action_no">No</string>
 </resources>
