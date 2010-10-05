@@ -287,7 +287,6 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 	private boolean wallpaperHack=true;
 	private boolean showAB2=false;
 	private boolean scrollableSupport=false;
-	private boolean shouldEnableScrollableSupport=false;
 	private DesktopIndicator mDesktopIndicator;
 	private int savedOrientation;
 	/**
@@ -1582,7 +1581,13 @@ public final class Launcher extends Activity implements View.OnClickListener, On
             			{
             				onActivityResult(REQUEST_CREATE_APPWIDGET, Activity.RESULT_CANCELED, data);
             				// Show a nice toast here to tell the user why the widget is rejected.            				
-            				Toast.makeText(this, "Can not add widget cause of FOOBAR", Toast.LENGTH_SHORT);
+            				new AlertDialog.Builder(this)
+            					.setTitle(R.string.adw_version)
+            					.setCancelable(true)
+            					.setIcon(R.drawable.ic_launcher_home)
+            					.setPositiveButton(getString(android.R.string.ok), null)
+            					.setMessage(getString(R.string.scrollable_api_required))
+            					.create().show();
             				return;
             			}
             	}
@@ -1593,15 +1598,15 @@ public final class Launcher extends Activity implements View.OnClickListener, On
             		if (!isScrollableAllowed() && requiresScrolling) {
             			// ask the user what to do
             			AlertDialog.Builder dlg = new AlertDialog.Builder(this);
-            			dlg.setPositiveButton(getString(R.string.action_yes), new DialogInterface.OnClickListener() {
+            			dlg.setPositiveButton(getString(android.R.string.yes), new DialogInterface.OnClickListener() {
 							
 							@Override
 							public void onClick(DialogInterface dialog, int which) {
-								shouldEnableScrollableSupport = true;
+								AlmostNexusSettingsHelper.setUIScrollableWidgets(Launcher.this, true);
 								configureOrAddAppWidget(data);
 							}
 						});
-            			dlg.setNegativeButton(getString(R.string.action_no), new DialogInterface.OnClickListener() {
+            			dlg.setNegativeButton(getString(android.R.string.no), new DialogInterface.OnClickListener() {
 							@Override
 							public void onClick(DialogInterface dialog, int which) {
 								onActivityResult(REQUEST_CREATE_APPWIDGET, Activity.RESULT_CANCELED, data);
@@ -3645,7 +3650,6 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 		if(AlmostNexusSettingsHelper.needsRestart(key)){
 			setPersistent(false);
 			mShouldRestart=true;
-			shouldEnableScrollableSupport=false;
 		}else{
 			//TODO: ADW Move here all the updates instead on updateAlmostNexusUI() 
 			updateAlmostNexusUI();
@@ -3672,6 +3676,15 @@ public final class Launcher extends Activity implements View.OnClickListener, On
 					setPersistent(false);
 	        		changeOrientation(AlmostNexusSettingsHelper.getDesktopOrientation(this),false);
 				}
+			}else if(key.equals("uiScrollableWidgets")){
+				boolean scroll=AlmostNexusSettingsHelper.getUIScrollableWidgets(this);
+				scrollableSupport=scroll;
+				if(scroll){
+					mWorkspace.registerProvider();
+				}else{
+					mWorkspace.unregisterProvider();
+				}
+				sModel.loadUserItems(false, Launcher.this, false, false);
 			}
 				
 		}
@@ -3847,11 +3860,6 @@ public final class Launcher extends Activity implements View.OnClickListener, On
                     launcherInfo.spanX, launcherInfo.spanY, insertAtFirst);
         } else if (sModel.isDesktopLoaded()) {
             sModel.addDesktopAppWidget(launcherInfo);
-        }
-        // maybe we need to enable the scrollable support        
-        if (shouldEnableScrollableSupport) {
-        	AlmostNexusSettingsHelper.setUIScrollableWidgets(this, true);
-        	shouldRestart();
         }
         // finish load a widget, send it an intent
         if(appWidgetInfo!=null)
